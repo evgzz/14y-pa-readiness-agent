@@ -15,7 +15,7 @@ export async function reviewReadiness(rawInput: unknown): Promise<{
 }> {
   const input = HumanReviewRequestSchema.parse(rawInput);
   const medplum = await getServerMedplumClient();
-  const evaluationTask = await medplum.readResource<Task>(
+  const evaluationTask = await medplum.readResource(
     'Task',
     input.evaluationTaskId,
   );

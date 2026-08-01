@@ -104,7 +104,7 @@ async function seed(): Promise<void> {
     'synth-doc-303',
   );
 
-  const readBack = await medplum.readResource<DocumentReference>(
+  const readBack = await medplum.readResource(
     'DocumentReference',
     documentReference.id!,
   );

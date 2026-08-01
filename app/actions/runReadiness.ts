@@ -36,8 +36,8 @@ export async function runReadiness(rawInput: unknown): Promise<ReadinessResult> 
   const medplum = await getServerMedplumClient();
 
   const [serviceRequest, documentReference] = await Promise.all([
-    medplum.readResource<ServiceRequest>('ServiceRequest', input.serviceRequestId),
-    medplum.readResource<DocumentReference>(
+    medplum.readResource('ServiceRequest', input.serviceRequestId),
+    medplum.readResource(
       'DocumentReference',
       input.documentReferenceId,
     ),
@@ -139,7 +139,7 @@ export async function runReadiness(rawInput: unknown): Promise<ReadinessResult> 
       extractionOverrides,
       documentReferenceId: documentReference.id ?? input.documentReferenceId,
       documentVersionId: documentReference.meta?.versionId ?? null,
-      attachmentIndex,
+      attachmentIndex: index,
     });
     overallStatus = deriveOverallStatus(POLICY_KEY, criteriaResults);
   }
