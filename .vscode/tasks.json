@@ -1,0 +1,150 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "14Y: Install Dependencies",
+      "type": "shell",
+      "command": "npm install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Install the application dependency tree and generate package-lock.json."
+    },
+    {
+      "label": "14Y: Typecheck",
+      "type": "npm",
+      "script": "typecheck",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Run the strict TypeScript verification gate."
+    },
+    {
+      "label": "14Y: Test",
+      "type": "npm",
+      "script": "test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Run the Vitest suite once."
+    },
+    {
+      "label": "14Y: Production Build",
+      "type": "npm",
+      "script": "build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Create the Next.js standalone production build."
+    },
+    {
+      "label": "14Y: Build and Verify",
+      "type": "npm",
+      "script": "verify",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Default VS Code build task: typecheck, test, then production build."
+    },
+    {
+      "label": "14Y: Seed Synthetic Medplum Data",
+      "type": "npm",
+      "script": "seed",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Seed or update the synthetic Patient, ServiceRequest, and DocumentReference. Requires .env.local."
+    },
+    {
+      "label": "14Y: Demo Preflight",
+      "type": "npm",
+      "script": "preflight",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Run static verification gates, then seed the synthetic Medplum tenant. Requires .env.local."
+    },
+    {
+      "label": "14Y: Start Development Server",
+      "type": "npm",
+      "script": "dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "Start Next.js development mode at http://localhost:3000."
+    },
+    {
+      "label": "14Y: Docker Build",
+      "type": "npm",
+      "script": "docker:build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Build the local production container image."
+    },
+    {
+      "label": "14Y: Docker Run",
+      "type": "npm",
+      "script": "docker:run",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Run the local container with .env.local on port 3000."
+    },
+    {
+      "label": "14Y: AWS Install CDK Dependencies",
+      "type": "npm",
+      "script": "aws:install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Install the AWS CDK infrastructure dependency tree."
+    },
+    {
+      "label": "14Y: AWS Build CDK",
+      "type": "npm",
+      "script": "aws:build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$tsc"],
+      "detail": "Compile the AWS CDK TypeScript project."
+    },
+    {
+      "label": "14Y: AWS CDK Synth",
+      "type": "npm",
+      "script": "aws:synth",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Synthesize CloudFormation. Requires AWS credentials and MEDPLUM_SECRET_ARN in the VS Code process environment."
+    },
+    {
+      "label": "14Y: AWS Deploy",
+      "type": "npm",
+      "script": "aws:deploy",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "detail": "Deploy the load-balanced ECS Fargate service. Requires AWS credentials and MEDPLUM_SECRET_ARN."
+    }
+  ]
+}

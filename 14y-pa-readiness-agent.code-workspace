@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "14Y PA Readiness Agent",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true
+  },
+  "extensions": {
+    "recommendations": [
+      "amazonwebservices.aws-toolkit-vscode",
+      "ms-azuretools.vscode-docker",
+      "vitest.explorer",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}

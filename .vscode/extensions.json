@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "amazonwebservices.aws-toolkit-vscode",
+    "ms-azuretools.vscode-docker",
+    "vitest.explorer",
+    "esbenp.prettier-vscode"
+  ]
+}

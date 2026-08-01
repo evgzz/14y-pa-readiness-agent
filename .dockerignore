@@ -1,0 +1,14 @@
+.git
+.github
+.next
+node_modules
+coverage
+dist
+*.log
+.env
+.env.local
+.env.*.local
+infra/aws/cdk.out
+14y-pa-readiness-agent.zip
+.vscode
+14y-pa-readiness-agent.code-workspace
