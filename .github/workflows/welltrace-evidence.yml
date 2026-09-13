@@ -71,3 +71,115 @@ jobs:
           path: welltrace-evidence/pa-real-engine-run.json
           if-no-files-found: error
           retention-days: 30
+
+  live-medplum:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout bridge change
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: bridge
+
+      - name: Checkout pinned PA system under test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: b054618be3b135006afb15dadb40d45648982fc4
+          path: sut
+
+      - name: Setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+          cache: npm
+          cache-dependency-path: sut/package-lock.json
+
+      - name: Install pinned SUT dependencies
+        working-directory: sut
+        run: npm ci
+
+      - name: Determine live Medplum credential availability
+        id: medplum
+        shell: bash
+        env:
+          MEDPLUM_CLIENT_ID: ${{ secrets.MEDPLUM_CLIENT_ID }}
+          MEDPLUM_CLIENT_SECRET: ${{ secrets.MEDPLUM_CLIENT_SECRET }}
+        run: |
+          if [[ -n "$MEDPLUM_CLIENT_ID" && -n "$MEDPLUM_CLIENT_SECRET" ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record blocked live-evidence state when credentials are absent
+        if: steps.medplum.outputs.available != 'true'
+        run: |
+          mkdir -p welltrace-live-medplum
+          node <<'NODE'
+          const fs = require('fs');
+          const status = {
+            schema_version: 'WT-PA-LIVE-MEDPLUM-STATUS-1.0.0',
+            status: 'BLOCKED_MISSING_MEDPLUM_REPOSITORY_SECRETS',
+            source_repository: 'evgzz/14y-pa-readiness-agent',
+            source_commit: 'b054618be3b135006afb15dadb40d45648982fc4',
+            execution_boundary: 'LIVE_MEDPLUM_SYNTHETIC_NON_PHI',
+            live_medplum_execution: 'NOT_RUN',
+            claim_boundary: 'No live Medplum request was made because repository credentials were unavailable to the workflow.'
+          };
+          fs.writeFileSync('welltrace-live-medplum/status.json', JSON.stringify(status, null, 2) + '\n');
+          NODE
+
+      - name: Seed synthetic resources in live Medplum
+        if: steps.medplum.outputs.available == 'true'
+        working-directory: sut
+        env:
+          MEDPLUM_CLIENT_ID: ${{ secrets.MEDPLUM_CLIENT_ID }}
+          MEDPLUM_CLIENT_SECRET: ${{ secrets.MEDPLUM_CLIENT_SECRET }}
+          MEDPLUM_BASE_URL: ${{ secrets.MEDPLUM_BASE_URL }}
+        run: |
+          export MEDPLUM_BASE_URL="${MEDPLUM_BASE_URL:-https://api.medplum.com/}"
+          mkdir -p ../welltrace-live-medplum
+          npm run seed --silent > ../welltrace-live-medplum/seed-output.json
+
+      - name: Execute actual runReadiness against live synthetic Medplum resources
+        if: steps.medplum.outputs.available == 'true'
+        env:
+          MEDPLUM_CLIENT_ID: ${{ secrets.MEDPLUM_CLIENT_ID }}
+          MEDPLUM_CLIENT_SECRET: ${{ secrets.MEDPLUM_CLIENT_SECRET }}
+          MEDPLUM_BASE_URL: ${{ secrets.MEDPLUM_BASE_URL }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          export MEDPLUM_BASE_URL="${MEDPLUM_BASE_URL:-https://api.medplum.com/}"
+          cp bridge/scripts/welltrace-live-medplum.ts sut/scripts/welltrace-live-medplum.ts
+          cd sut
+          npx tsx scripts/welltrace-live-medplum.ts \
+            ../welltrace-live-medplum/seed-output.json \
+            ../welltrace-live-medplum/pa-live-medplum-run.json
+
+      - name: Verify live Medplum evidence envelope
+        if: steps.medplum.outputs.available == 'true'
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const p = 'welltrace-live-medplum/pa-live-medplum-run.json';
+          const r = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (r.source_commit !== 'b054618be3b135006afb15dadb40d45648982fc4') throw new Error('wrong source commit');
+          if (r.execution_boundary !== 'LIVE_MEDPLUM_SYNTHETIC_NON_PHI') throw new Error('wrong execution boundary');
+          if (r.items.length !== 2) throw new Error('expected 2 items');
+          const ready = r.items.find(x => x.case_id === 'PA-LIVE-MEDPLUM-READY-001');
+          const scope = r.items.find(x => x.case_id === 'PA-LIVE-MEDPLUM-SCOPE-001');
+          if (!ready || ready.outcome.kind !== 'READINESS_RESULT' || ready.outcome.result.status !== 'ready') throw new Error('live ready path mismatch');
+          if (!ready.outcome.result.evaluationTaskId) throw new Error('FHIR Task audit result missing');
+          if (!scope || scope.outcome.kind !== 'ERROR' || scope.outcome.message !== 'Resource scope mismatch.') throw new Error('resource-scope fail-closed path mismatch');
+          console.log('Live Medplum WellTrace envelope verified');
+          NODE
+
+      - name: Upload live Medplum status or evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: welltrace-pa-live-medplum-evidence
+          path: welltrace-live-medplum/
+          if-no-files-found: error
+          retention-days: 30
