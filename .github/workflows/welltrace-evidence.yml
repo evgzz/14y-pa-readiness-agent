@@ -1,0 +1,73 @@
+name: welltrace-pa-engine-evidence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout bridge change
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: bridge
+
+      - name: Checkout pinned PA system under test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: b054618be3b135006afb15dadb40d45648982fc4
+          path: sut
+
+      - name: Setup Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.18.0'
+          cache: npm
+          cache-dependency-path: sut/package-lock.json
+
+      - name: Install pinned SUT dependencies
+        working-directory: sut
+        run: npm ci
+
+      - name: Verify pinned SUT tests
+        working-directory: sut
+        run: npm test
+
+      - name: Export actual readiness-engine evidence
+        run: |
+          cp bridge/scripts/welltrace-export-engine.ts sut/scripts/welltrace-export-engine.ts
+          cd sut
+          npx tsx scripts/welltrace-export-engine.ts
+
+      - name: Verify evidence envelope
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const p = 'welltrace-evidence/pa-real-engine-run.json';
+          const r = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (r.source_commit !== 'b054618be3b135006afb15dadb40d45648982fc4') throw new Error('wrong source commit');
+          if (r.items.length !== 3) throw new Error('expected 3 items');
+          const states = Object.fromEntries(r.items.map(x => [x.case_id, x.outcome.result.status]));
+          if (states['PA-REAL-ENGINE-READY-001'] !== 'ready') throw new Error('ready state mismatch');
+          if (states['PA-REAL-ENGINE-INCOMPLETE-001'] !== 'incomplete') throw new Error('incomplete state mismatch');
+          if (states['PA-REAL-ENGINE-UNVERIFIED-001'] !== 'unverified') throw new Error('unverified state mismatch');
+          console.log('WellTrace evidence envelope verified');
+          NODE
+
+      - name: Upload WellTrace evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: welltrace-pa-real-engine-evidence
+          path: welltrace-evidence/pa-real-engine-run.json
+          if-no-files-found: error
+          retention-days: 30
